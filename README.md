@@ -1,43 +1,46 @@
-# 🤖 Code Explainer
+# 🐳 Code Explainer - Docker Edition
 
-Um utilitário de linha de comando em Go que usa **modelos locais de IA com Ollama** para explicar trechos de código.
+Este projeto permite explicar trechos de código usando IA (modelo CodeLlama) de forma **totalmente local** via **Docker + Ollama**.
 
 ---
 
-## 🚀 Como usar com Ollama
+## 🚀 Como usar com Docker
 
-### 1. Instale o Ollama
+### 1. Certifique-se de que o [Ollama](https://ollama.com) está instalado
 
-Acesse [https://ollama.com](https://ollama.com) e instale a versão para seu sistema operacional.
-
-Ou via terminal:
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-### 2. Baixe e rode o modelo `codellama`
+Baixe o modelo `codellama` e inicie:
 
 ```bash
 ollama run codellama
 ```
 
-> Isso abrirá um servidor local em `http://localhost:11434`
+---
 
-### 3. Rode o projeto
+### 2. Baixe a imagem do Docker Hub
 
 ```bash
-go run main.go
+docker pull mvcbotelho/code-explainer:latest
 ```
 
-Cole o trecho de código e pressione **Ctrl+D** (Linux/macOS) ou **Ctrl+Z** (Windows) para enviar.
+> Substitua `mvcbotelho` pelo seu nome de usuário do Docker Hub, se for diferente.
 
 ---
 
-## 💻 Exemplo no terminal
+### 3. Execute a imagem
 
 ```bash
-$ go run main.go
+docker run --rm -it mvcbotelho/code-explainer
+```
+
+Cole o código no terminal e pressione **Ctrl+D** (Linux/macOS) ou **Ctrl+Z** (Windows) para enviar.
+
+---
+
+## 💻 Exemplo
+
+```text
+$ docker run --rm -it mvcbotelho/code-explainer
+
 Cole o trecho de código abaixo e pressione Ctrl+D (Linux/macOS) ou Ctrl+Z (Windows) para enviar:
 
 func soma(a int, b int) int {
@@ -45,36 +48,25 @@ func soma(a int, b int) int {
 }
 
 📘 Explicação gerada pela IA:
-Esta função recebe dois números inteiros como argumentos e retorna a soma deles.
-
+Esta função soma dois números inteiros e retorna o resultado.
 ```
 
 ---
 
-## 📦 Estrutura do projeto
+## 📦 Requisitos
 
-```
-code-explainer/
-├── main.go
-├── openai/
-│   └── explain.go
-├── go.mod
-├── .gitignore
-└── README.md
-```
+- Docker instalado
+- Ollama rodando com o modelo `codellama`
 
 ---
 
-## 📋 Requisitos
+## 🧠 Sobre o projeto
 
-- Go 1.20+
-- Ollama instalado
-- Modelo `codellama` carregado
+- Linguagem: Go
+- Integração com IA local via Ollama
+- Não envia dados para a nuvem
+- Ideal para estudos, reviews e aprendizado
 
 ---
 
-## 📜 Licença
-
-MIT License
-
-Feito com 💡 por Marcus e 🤖 R2Dev2
+Feito com 💡 por Marcus
