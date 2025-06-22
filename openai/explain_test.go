@@ -8,13 +8,20 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 // Mock da função ExplainCode para testes
 func mockExplainCode(code string, serverURL string) (string, error) {
-	model := os.Getenv("MODEL_NAME")
-	if model == "" {
-		model = "codellama"
+	config := &Config{
+		APIURL:  serverURL,
+		Model:   "codellama",
+		Timeout: 5 * time.Second,
+	}
+
+	// Usa variável de ambiente se disponível
+	if model := os.Getenv("MODEL_NAME"); model != "" {
+		config.Model = model
 	}
 
 	lang := DetectLanguage(code)
@@ -23,29 +30,40 @@ func mockExplainCode(code string, serverURL string) (string, error) {
 %s`, lang, code)
 
 	body := Request{
-		Model:  model,
+		Model:  config.Model,
 		Prompt: prompt,
 		Stream: false,
 	}
 
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(body); err != nil {
-		return "", err
+		return "", fmt.Errorf("erro ao codificar requisição: %w", err)
 	}
 
-	resp, err := http.Post(serverURL, "application/json", buf)
+	client := &http.Client{
+		Timeout: config.Timeout,
+	}
+
+	resp, err := client.Post(config.APIURL, "application/json", buf)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("erro de conexão com a API: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error, status code: %d, status: %s", resp.StatusCode, resp.Status)
+		var errorBody bytes.Buffer
+		errorBody.ReadFrom(resp.Body)
+
+		return "", &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    resp.Status,
+			Details:    errorBody.String(),
+		}
 	}
 
 	var r Response
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return "", err
+		return "", fmt.Errorf("erro ao decodificar resposta da API: %w", err)
 	}
 
 	return r.Response, nil
@@ -166,6 +184,15 @@ func TestExplainCodeHTTPError(t *testing.T) {
 	if err == nil {
 		t.Errorf("mockExplainCode() should return error for HTTP 500")
 	}
+
+	// Verifica se é um APIError
+	if apiErr, ok := err.(*APIError); ok {
+		if apiErr.StatusCode != http.StatusInternalServerError {
+			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, apiErr.StatusCode)
+		}
+	} else {
+		t.Errorf("Expected APIError, got %T", err)
+	}
 }
 
 func TestExplainCodeInvalidJSON(t *testing.T) {
@@ -209,6 +236,85 @@ func TestExplainCodeEmptyResponse(t *testing.T) {
 
 	if result != "" {
 		t.Errorf("mockExplainCode() should return empty string for empty response")
+	}
+}
+
+func TestConfigValidation(t *testing.T) {
+	// Teste de validação de configuração
+	tests := []struct {
+		name   string
+		config *Config
+		valid  bool
+	}{
+		{
+			name: "Config válida",
+			config: &Config{
+				APIURL:  "http://localhost:8080",
+				Model:   "test-model",
+				Timeout: 30 * time.Second,
+			},
+			valid: true,
+		},
+		{
+			name:   "Config nula",
+			config: nil,
+			valid:  false,
+		},
+		{
+			name: "URL vazia",
+			config: &Config{
+				APIURL:  "",
+				Model:   "test-model",
+				Timeout: 30 * time.Second,
+			},
+			valid: false,
+		},
+		{
+			name: "Modelo vazio",
+			config: &Config{
+				APIURL:  "http://localhost:8080",
+				Model:   "",
+				Timeout: 30 * time.Second,
+			},
+			valid: false,
+		},
+		{
+			name: "Timeout zero",
+			config: &Config{
+				APIURL:  "http://localhost:8080",
+				Model:   "test-model",
+				Timeout: 0,
+			},
+			valid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateConfig(tt.config)
+			if tt.valid && err != nil {
+				t.Errorf("Expected valid config, got error: %v", err)
+			}
+			if !tt.valid && err == nil {
+				t.Errorf("Expected invalid config, got no error")
+			}
+		})
+	}
+}
+
+func TestDefaultConfig(t *testing.T) {
+	config := DefaultConfig()
+
+	if config.APIURL != "http://localhost:11434/api/generate" {
+		t.Errorf("Expected default API URL, got %s", config.APIURL)
+	}
+
+	if config.Model != "codellama" {
+		t.Errorf("Expected default model, got %s", config.Model)
+	}
+
+	if config.Timeout != 30*time.Second {
+		t.Errorf("Expected default timeout, got %v", config.Timeout)
 	}
 }
 
