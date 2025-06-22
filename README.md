@@ -294,11 +294,3 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ⭐ Se este projeto te ajudou, considere dar uma estrela no repositório!
 
-# Ler código de arquivo
-code-explainer explain --file main.go
-
-# Explicar múltiplos arquivos
-code-explainer explain --dir ./src
-
-# Salvar saída em arquivo
-code-explainer explain --output explanation.md

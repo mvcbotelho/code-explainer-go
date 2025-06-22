@@ -1,33 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 
-	"github.com/mvcbotelho/code-explainer/openai"
+	"github.com/mvcbotelho/code-explainer/cmd"
 )
 
 func main() {
-	fmt.Println("Cole o trecho de código abaixo e pressione Ctrl+D (Linux/macOS) ou Ctrl+Z (Windows) para enviar:")
+	// Configurar tratamento de erros
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "❌ Erro fatal: %v\n", r)
+			os.Exit(1)
+		}
+	}()
 
-	scanner := bufio.NewScanner(os.Stdin)
-	var code strings.Builder
-	for scanner.Scan() {
-		code.WriteString(scanner.Text() + "\n")
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Erro ao ler entrada: %v", err)
-	}
-
-	explanation, err := openai.ExplainCodeWithDefaultURL(code.String())
-	if err != nil {
-		log.Fatalf("Erro ao explicar o código: %v", err)
-	}
-
-	fmt.Println("\n📘 Explicação gerada pela IA:")
-	fmt.Println(explanation)
+	// Executar CLI
+	cmd.Execute()
 }
