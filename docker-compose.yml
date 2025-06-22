@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  code-explainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: code-explainer:latest
+    container_name: code-explainer
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-codellama}
+    env_file:
+      - .env
+    volumes:
+      # Para desenvolvimento, montar o código fonte
+      - .:/app
+    working_dir: /app
+    # Para aplicações interativas, usar stdin_open e tty
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "code-explainer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.project=code-explainer"
+      - "com.docker.compose.service=code-explainer"
+
+  # Serviço para desenvolvimento com hot reload (opcional)
+  code-explainer-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: code-explainer:dev
+    container_name: code-explainer-dev
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-codellama}
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - go-cache:/go
+    working_dir: /app
+    command: go run main.go
+    stdin_open: true
+    tty: true
+    profiles:
+      - dev
+    labels:
+      - "com.docker.compose.project=code-explainer"
+      - "com.docker.compose.service=code-explainer-dev"
+
+volumes:
+  go-cache:
+    driver: local 
